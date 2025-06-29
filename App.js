@@ -1,3 +1,5 @@
+
+const { useState, useEffect } = React;
 const apiKey = ac5c7d16;
 const movieContainer = document.getElementById("movieContainer");
 const defaultTitles = [
