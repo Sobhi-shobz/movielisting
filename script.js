@@ -1,47 +1,40 @@
-const apiKey = ac5c7d16; // Replace with your actual OMDb API key
+const apiKey = ac5c7d16;
 const movieContainer = document.getElementById("movieContainer");
-
-// Default movies to show on home page
-const defaultMovies = [
-  "Inception",
-  "Interstellar",
-  "The Dark Knight",
-  "Avengers: Endgame",
-  "Titanic",
-  "The Matrix",
-  "Joker",
-  "Forrest Gump"
+const defaultTitles = [
+  "Inception", "Parasite", "The Dark Knight", "Pulp Fiction",
+  "Interstellar", "Gladiator", "The Godfather", "Mad Max: Fury Road"
 ];
 
-function fetchMovie(title) {
-  fetch(`https://www.omdbapi.com/?apikey=${apiKey}&t=${encodeURIComponent(title)}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.Response === "True") {
-        const movieCard = `
-          <div class="movie-card">
-            <img src="${data.Poster !== "N/A" ? data.Poster : 'https://via.placeholder.com/300x450'}" alt="Poster">
-            <h3>${data.Title}</h3>
-            <p>${data.Year} | ⭐ ${data.imdbRating}</p>
-            <p>${data.Genre}</p>
-            <p>${data.Plot.substring(0, 100)}...</p>
-          </div>
-        `;
-        movieContainer.insertAdjacentHTML("beforeend", movieCard);
-      }
-    });
-}
-
-// Load default movies on home
 window.onload = () => {
   movieContainer.innerHTML = "";
-  defaultMovies.forEach(title => fetchMovie(title));
+  defaultTitles.forEach(fetchAndDisplay);
 };
 
-function searchMovie() {
-  const query = document.getElementById("searchInput").value.trim();
-  if (!query) return;
+function fetchAndDisplay(title) {
+  fetch(`https://www.omdbapi.com/?apikey=${apiKey}&t=${encodeURIComponent(title)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data?.Response === "True") renderCard(data);
+    })
+    .catch(console.error);
+}
 
-  movieContainer.innerHTML = ""; // Clear current movies
-  fetchMovie(query);
+function renderCard(m) {
+  const card = document.createElement("div");
+  card.className = "movie-card";
+  card.innerHTML = `
+    <img src="${m.Poster !== "N/A"? m.Poster : 'https://via.placeholder.com/300x450'}" alt="Poster">
+    <div class="movie-info">
+      <h3>${m.Title}</h3>
+      <p>${m.Year} • ⭐ ${m.imdbRating}</p>
+      <p>${m.Genre}</p>
+    </div>`;
+  movieContainer.appendChild(card);
+}
+
+function searchMovie() {
+  const q = document.getElementById("searchInput").value.trim();
+  if (!q) return;
+  movieContainer.innerHTML = "";
+  fetchAndDisplay(q);
 }
