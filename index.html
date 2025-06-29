@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Movie Search App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎬 Movie Explorer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>🎬 Movie Search App</h1>
-    <input type="text" id="searchInput" placeholder="Enter movie title..." />
+  <header>
+    <h1>🎬 Movie Explorer</h1>
+    <input type="text" id="searchInput" placeholder="Search for a movie..." />
     <button onclick="searchMovie()">Search</button>
-    <div id="movieDetails"></div>
-  </div>
+  </header>
+
+  <main>
+    <section id="movieContainer" class="movie-grid">
+      <!-- Movies will be injected here -->
+    </section>
+  </main>
+
   <script src="script.js"></script>
 </body>
 </html>
