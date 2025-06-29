@@ -1,19 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Movie Explorer</title>
-  <link rel="stylesheet" href="style.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search Library</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
-  <header>
-    <input id="searchInput" placeholder="Search for movies"/>
-    <button onclick="searchMovie()">Search</button>
-  </header>
-  <main>
-    <section id="movieContainer" class="movie-grid"></section>
-  </main>
-  <script src="App.js"></script>
+    <div class="app-container">
+        <h1>Movie Search Library</h1>
+
+        <form id="search-form" class="search-bar">
+            <input type="text" id="search-input" placeholder="Search for movies..." required>
+            <button type="submit">Search</button>
+        </form>
+
+        <p id="status-message" class="status-message"></p>
+
+        <div id="movie-list" class="movie-list">
+            <p class="status-message">Start by searching for a movie title!</p>
+        </div>
+
+        <div id="movie-details-overlay" class="movie-details-overlay hidden">
+            <div class="movie-details-content">
+                <button id="close-details-button" class="close-button">&times;</button>
+                <h2 id="detail-title"></h2>
+                <div class="details-layout">
+                    <img id="detail-poster" src="" alt="Movie Poster">
+                    <div class="details-text">
+                        <p><strong>Plot:</strong> <span id="detail-plot"></span></p>
+                        <p><strong>Director:</strong> <span id="detail-director"></span></p>
+                        <p><strong>Actors:</strong> <span id="detail-actors"></span></p>
+                        <p><strong>Genre:</strong> <span id="detail-genre"></span></p>
+                        <p><strong>IMDb Rating:</strong> <span id="detail-imdb-rating"></span></p>
+                        <p><strong>Released:</strong> <span id="detail-released"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const OMDB_API_KEY = 'ac5c7d16'; // <<-- REPLACE WITH YOUR OMDb API KEY
+        const OMDB_API_URL = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}`;
+        const DEFAULT_PLACEHOLDER_IMAGE = "https://via.placeholder.com/200x300?text=No+Poster";
+
+        // --- DOM Elements ---
+        const searchForm = document.getElementById('search-form');
+        const searchInput = document.getElementById('search-input');
+        const statusMessage = document.getElementById('status-message');
+        const movieListContainer = document.getElementById('movie-list');
+        const movieDetailsOverlay = document.getElementById('movie-details-overlay');
+        const closeDetailsButton = document.getElementById('close-details-button');
+
+        // Detail elements
+        const detailTitle = document.getElementById('detail-title');
+        const detailPoster = document.getElementById('detail-poster');
+        const detailPlot = document.getElementById('detail-plot');
+        const detailDirector = document.getElementById('detail-director');
+        const detailActors = document.getElementById('detail-actors');
+        const detailGenre = document.getElementById('detail-genre');
+        const detailImdbRating = document.getElementById('detail-imdb-rating');
+        const detailReleased = document.getElementById('detail-released');
+
+        // --- Functions ---
+
+        /**
+         * Displays a status message to the user.
+         * @param {string} message - The message to display.
+         * @param {boolean} isError - True if it's an error message, false otherwise.
+         */
+        function showStatus(message, isError = false) {
+            statusMessage.textContent = message;
+            if (isError) {
+                statusMessage.classList.add('error-message');
+            } else {
+                statusMessage.classList.remove('error-message');
+            }
+            statusMessage.classList.remove('hidden');
+        }
+
+        /**
+         * Clears any displayed status message.
+         */
+        function clearStatus() {
+            statusMessage.textContent = '';
+            statusMessage.classList.add('hidden');
+        }
+
+        /**
+         * Renders a single movie card into the DOM.
+         * @param {object} movie - The movie object from OMDb API.
+         * @returns {HTMLElement} The created movie card element.
+         */
+        function createMovieCard(movie) {
+            const movieCard = document.createElement('div');
+            movieCard.classList.add('movie-card');
+            movieCard.dataset.imdbID = movie.imdbID; // Store IMDb ID for details lookup
+
+            const posterUrl = movie.Poster === "N/A" ? DEFAULT_PLACEHOLDER_IMAGE : movie.Poster;
+
+            movieCard.innerHTML = `
+                <img src="${posterUrl}" alt="${movie.Title} Poster">
+                <div class="movie-info">
+                    <h3>${movie.Title}</h3>
+                    <p>${movie.Year}</p>
+                </div>
+            `;
+
+            movieCard.addEventListener('click', () => fetchMovieDetails(movie.imdbID));
+            return movieCard;
+        }
+
+        /**
+         * Fetches movies based on a search term and displays them.
+         * @param {string} title - The movie title to search for.
+         */
+        async function searchMovies(title) {
+            clearStatus();
+            showStatus('Loading...', false);
+            movieListContainer.innerHTML = ''; // Clear previous results
+            movieDetailsOverlay.classList.add('hidden'); // Hide details if open
+
+            try {
+                const response = await axios.get(`${OMDB_API_URL}&s=${encodeURIComponent(title)}`);
+                if (response.data.Search) {
+                    response.data.Search.forEach(movie => {
+                        movieListContainer.appendChild(createMovieCard(movie));
+                    });
+                    clearStatus();
+                } else {
+                    showStatus(response.data.Error || 'No movies found.', true);
+                }
+            } catch (error) {
+                console.error("Error fetching movies:", error);
+                showStatus('Failed to fetch movies. Please check your network or API key.', true);
+            }
+        }
+
+        /**
+         * Fetches and displays detailed information for a specific movie.
+         * @param {string} imdbID - The IMDb ID of the movie.
+         */
+        async function fetchMovieDetails(imdbID) {
+            clearStatus();
+            showStatus('Loading details...', false);
+            try {
+                const response = await axios.get(`${OMDB_API_URL}&i=${encodeURIComponent(imdbID)}&plot=full`);
+                if (response.data.Response === "True") {
+                    const movie = response.data;
+                    detailTitle.textContent = `${movie.Title} (${movie.Year})`;
+                    detailPoster.src = movie.Poster !== "N/A" ? movie.Poster : DEFAULT_PLACEHOLDER_IMAGE;
+                    detailPoster.alt = `${movie.Title} Poster`;
+                    detailPlot.textContent = movie.Plot;
+                    detailDirector.textContent = movie.Director;
+                    detailActors.textContent = movie.Actors;
+                    detailGenre.textContent = movie.Genre;
+                    detailImdbRating.textContent = movie.imdbRating;
+                    detailReleased.textContent = movie.Released;
+
+                    movieDetailsOverlay.classList.remove('hidden'); // Show the overlay
+                    clearStatus();
+                } else {
+                    showStatus(response.data.Error || 'Failed to fetch movie details.', true);
+                }
+            } catch (error) {
+                console.error("Error fetching movie details:", error);
+                showStatus('Failed to fetch movie details. Please try again.', true);
+            }
+        }
+
+        // --- Event Listeners ---
+
+        searchForm.addEventListener('submit', (event) => {
+            event.preventDefault(); // Prevent default form submission
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm) {
+                searchMovies(searchTerm);
+            }
+        });
+
+        closeDetailsButton.addEventListener('click', () => {
+            movieDetailsOverlay.classList.add('hidden'); // Hide the overlay
+        });
+
+        // Optional: Close details when clicking outside the content
+        movieDetailsOverlay.addEventListener('click', (event) => {
+            if (event.target === movieDetailsOverlay) {
+                movieDetailsOverlay.classList.add('hidden');
+            }
+        });
+
+        // Optional: Initial message on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // You can uncomment the line below to search for a default movie on page load
+            // searchMovies('Inception');
+        });
+
+    </script>
 </body>
 </html>
